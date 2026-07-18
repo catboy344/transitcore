@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TransitCore — Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root{
+    --emerald-deep:#0B1B42; --emerald-black:#070F26; --emerald-mid:#14245C;
+    --brass:#2B54E8; --brass-light:#6E93F5; --ivory:#F5F7FB;
+    --sage:#7C89A6; --rust:#D64545; --ink:#10193A; --line: rgba(43,84,232,0.28);
+  }
+  *{box-sizing:border-box;margin:0;}
+  body{margin:0;background:var(--emerald-black);color:var(--ivory);font-family:'Inter',sans-serif;}
+  a{color:inherit;}
+  .app{min-height:100vh;display:flex;flex-direction:column;}
+
+  /* ===== GATE ===== */
+  .gate{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .gate-card{background:var(--emerald-mid);border:1px solid var(--line);border-radius:14px;padding:38px;max-width:380px;width:100%;text-align:center;}
+  .gate-card h2{font-family:'Fraunces',serif;font-size:20px;margin:0 0 6px;color:var(--brass-light);}
+  .gate-card p{font-size:13px;color:var(--sage);margin:0 0 18px;}
+  .gate-card input{width:100%;padding:12px 14px;border-radius:8px;border:1px solid var(--line);background:var(--emerald-black);color:var(--ivory);font-family:'IBM Plex Mono',monospace;font-size:15px;text-align:center;letter-spacing:3px;}
+  .gate-card button{margin-top:14px;width:100%;padding:12px;border-radius:8px;border:none;background:var(--brass);color:var(--emerald-black);font-weight:700;font-size:14px;cursor:pointer;transition:all 0.25s;}
+  .gate-card button:hover{transform:scale(1.02);}
+  .gate-error{color:var(--rust);font-size:12px;margin-top:10px;min-height:14px;}
+  .gate-back{display:inline-block;margin-top:16px;font-size:12px;color:var(--sage);}
+
+  /* ===== SHELL ===== */
+  .shell{flex:1;display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
+  @media (max-width:840px){.shell{grid-template-columns:1fr;}}
+  .sidebar{background:linear-gradient(180deg,var(--emerald-deep),var(--emerald-black));border-right:1px solid var(--line);padding:22px 16px;display:flex;flex-direction:column;}
+  @media (max-width:840px){.sidebar{border-right:none;border-bottom:1px solid var(--line);flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px;}}
+  .sb-brand{font-family:'Fraunces',serif;font-weight:700;font-size:18px;padding:6px 10px 18px;color:var(--ivory);}
+  .sb-brand small{display:block;font-size:9px;letter-spacing:1.5px;color:var(--sage);text-transform:uppercase;font-family:'Inter',sans-serif;font-weight:600;margin-top:3px;}
+  @media (max-width:840px){.sb-brand{padding:6px 10px;}}
+  .sb-nav{display:flex;flex-direction:column;gap:2px;flex:1;}
+  @media (max-width:840px){.sb-nav{flex-direction:row;flex-wrap:wrap;}}
+  .sb-link{padding:10px 12px;border-radius:8px;font-size:13.5px;font-weight:500;color:var(--sage);cursor:pointer;display:flex;align-items:center;gap:9px;transition:all 0.2s;background:none;border:none;text-align:left;width:100%;font-family:'Inter',sans-serif;}
+  @media (max-width:840px){.sb-link{width:auto;}}
+  .sb-link:hover{background:rgba(43,84,232,0.08);color:var(--ivory);}
+  .sb-link.active{background:var(--brass);color:var(--emerald-black);font-weight:700;}
+  .sb-foot{padding-top:14px;border-top:1px solid var(--line);margin-top:10px;}
+  .sb-foot a{font-size:12px;color:var(--sage);}
+  .sb-logout{font-size:12px;color:var(--rust);background:none;border:none;cursor:pointer;padding:10px 12px;text-align:left;width:100%;font-family:'Inter',sans-serif;}
+
+  .content{padding:28px 32px;overflow-y:auto;max-height:100vh;}
+  @media (max-width:840px){.content{max-height:none;}}
+  .page{display:none;}
+  .page.active{display:block;animation:fadeIn 0.25s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  .page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:14px;}
+  .page-head h1{font-family:'Fraunces',serif;font-size:24px;color:var(--brass-light);}
+  .page-head p{font-size:13px;color:var(--sage);margin-top:4px;}
+
+  /* stat cards */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:30px;}
+  @media (max-width:800px){.stats{grid-template-columns:repeat(2,1fr);}}
+  .stat-card{background:var(--emerald-mid);border:1px solid var(--line);border-radius:12px;padding:18px 20px;}
+  .stat-card .sc-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--sage);margin-bottom:8px;}
+  .stat-card .sc-value{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;color:var(--ivory);}
+
+  /* tables */
+  .table-wrap{background:var(--emerald-mid);border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--sage);padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(0,0,0,0.15);}
+  td{padding:12px 16px;font-size:13.5px;border-bottom:1px solid rgba(43,84,232,0.12);}
+  tr:last-child td{border-bottom:none;}
+  td.mono, .mono{font-family:'IBM Plex Mono',monospace;}
+  .table-toolbar{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;gap:10px;flex-wrap:wrap;}
+  .search-input{padding:8px 12px;border-radius:7px;border:1px solid var(--line);background:var(--emerald-black);color:var(--ivory);font-size:13px;min-width:200px;}
+  .row-actions{display:flex;gap:8px;}
+  .icon-btn{background:none;border:1px solid var(--line);color:var(--ivory);border-radius:6px;padding:5px 9px;font-size:12px;cursor:pointer;transition:all 0.2s;}
+  .icon-btn:hover{border-color:var(--brass);}
+  .icon-btn.danger:hover{border-color:var(--rust);color:var(--rust);}
+  .empty-row{padding:30px;text-align:center;color:var(--sage);font-size:13px;}
+  .badge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
+  .badge.on{background:rgba(76,175,80,0.15);color:#7fd88a;}
+  .badge.off{background:rgba(181,72,42,0.15);color:#e08064;}
+
+  /* forms */
+  .card{background:var(--emerald-mid);border:1px solid var(--line);border-radius:12px;padding:22px;margin-bottom:22px;}
+  .card h3{font-family:'Fraunces',serif;font-size:16px;color:var(--brass-light);margin-bottom:16px;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media (max-width:600px){.field-row{grid-template-columns:1fr;}}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--sage);margin-bottom:6px;}
+  .field input, .field textarea, .field select{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--emerald-black);color:var(--ivory);font-family:'Inter',sans-serif;font-size:14px;}
+  .field textarea{resize:vertical;min-height:70px;}
+  .field input:focus, .field textarea:focus, .field select:focus{outline:none;border-color:var(--brass);}
+  .btn{padding:11px 20px;border-radius:8px;border:none;background:var(--brass);color:var(--emerald-black);font-weight:700;font-size:13.5px;cursor:pointer;transition:all 0.25s;}
+  .btn:hover{transform:scale(1.02);}
+  .btn.secondary{background:transparent;border:1px solid var(--line);color:var(--ivory);}
+  .btn-row{display:flex;gap:10px;margin-top:6px;}
+  .setup-note{background:rgba(43,84,232,0.08);border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:12.5px;color:var(--sage);margin-bottom:20px;line-height:1.6;}
+  .setup-note strong{color:var(--brass-light);}
+
+  .toast{position:fixed;bottom:30px;right:30px;background:var(--emerald-mid);color:var(--ivory);padding:16px 24px;border-radius:12px;border:1px solid var(--brass);box-shadow:0 10px 40px rgba(0,0,0,0.5);font-size:14px;z-index:999;transform:translateY(100px);opacity:0;transition:all 0.4s ease;max-width:380px;}
+  .toast.show{transform:translateY(0);opacity:1;}
+  .toast.success{border-color:#4CAF50;}
+  .toast.error{border-color:var(--rust);}
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--emerald-mid);border-radius:8px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div id="gateScreen" class="gate">
+    <div class="gate-card">
+      <h2>🔐 Admin Access</h2>
+      <p>This panel controls the public TransitCore site. Enter the admin passcode.</p>
+      <input type="password" id="gateInput" placeholder="• • • • • • • •" maxlength="30">
+      <button onclick="tryUnlock()">Enter admin panel</button>
+      <div class="gate-error" id="gateError"></div>
+      <a href="../index.html" class="gate-back">← Back to main site</a>
+    </div>
+  </div>
+
+  <div id="shell" class="shell" style="display:none;">
+    <div class="sidebar">
+      <div class="sb-brand">TransitCore<small>Admin Panel</small></div>
+      <div class="sb-nav">
+        <button class="sb-link active" data-page="dashboard" onclick="showPage('dashboard')">📊 Dashboard</button>
+        <button class="sb-link" data-page="routes" onclick="showPage('routes')">🗺️ Routes &amp; Pricing</button>
+        <button class="sb-link" data-page="bookings" onclick="showPage('bookings')">🎫 Bookings</button>
+        <button class="sb-link" data-page="testimonials" onclick="showPage('testimonials')">💬 Testimonials</button>
+        <button class="sb-link" data-page="settings" onclick="showPage('settings')">⚙️ Site Settings</button>
+      </div>
+      <div class="sb-foot">
+        <a href="../index.html" target="_blank">↗ View live site</a><br><br>
+        <button class="sb-logout" onclick="logout()">⎋ Log out</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-head">
+          <div><h1>Dashboard</h1><p>Overview of everything running through TransitCore.</p></div>
+        </div>
+        <div class="stats">
+          <div class="stat-card"><div class="sc-label">Total bookings</div><div class="sc-value" id="statBookings">—</div></div>
+          <div class="stat-card"><div class="sc-label">Revenue coordinated</div><div class="sc-value" id="statRevenue">—</div></div>
+          <div class="stat-card"><div class="sc-label">Active routes</div><div class="sc-value" id="statRoutes">—</div></div>
+          <div class="stat-card"><div class="sc-label">Published testimonials</div><div class="sc-value" id="statTesti">—</div></div>
+        </div>
+        <div class="card">
+          <h3>Recent bookings</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Code</th><th>Passenger</th><th>Route</th><th>Date</th><th>Fare</th></tr></thead>
+              <tbody id="dashRecentBody"><tr><td colspan="5" class="empty-row">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROUTES -->
+      <div class="page" id="page-routes">
+        <div class="page-head">
+          <div><h1>Routes &amp; Pricing</h1><p>These power the route cards and booking dropdown on the public site.</p></div>
+        </div>
+        <div class="setup-note" id="routesSetupNote" style="display:none;"></div>
+        <div class="card">
+          <h3 id="routeFormTitle">Add a route</h3>
+          <input type="hidden" id="routeId">
+          <div class="field-row">
+            <div class="field"><label>Destination</label><input id="routeDest" placeholder="e.g. Lagos Island"></div>
+            <div class="field"><label>Operator</label><input id="routeOp" value="GIGM"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Indicative fare (₦)</label><input id="routePrice" type="number" placeholder="e.g. 15000"></div>
+            <div class="field"><label>Status</label>
+              <select id="routeActive"><option value="true">Active — visible on site</option><option value="false">Inactive — hidden</option></select>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn" onclick="saveRoute()">Save route</button>
+            <button class="btn secondary" id="routeCancelBtn" style="display:none;" onclick="resetRouteForm()">Cancel edit</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-toolbar"><strong style="font-size:13px;">All routes</strong><button class="icon-btn" onclick="loadRoutesAdmin()">⟳ Refresh</button></div>
+          <table>
+            <thead><tr><th>Destination</th><th>Operator</th><th>Fare</th><th>Status</th><th></th></tr></thead>
+            <tbody id="routesBody"><tr><td colspan="5" class="empty-row">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- BOOKINGS -->
+      <div class="page" id="page-bookings">
+        <div class="page-head">
+          <div><h1>Bookings</h1><p>Read-only view of tickets issued from the desk ticketing tool.</p></div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-toolbar">
+            <input class="search-input" id="bookingSearch" placeholder="Search name, code, reg no…" oninput="renderBookingsTable()">
+            <button class="icon-btn" onclick="loadBookingsAdmin()">⟳ Refresh</button>
+          </div>
+          <table>
+            <thead><tr><th>Code</th><th>Passenger</th><th>Route</th><th>Date</th><th>Fare</th><th>Phone</th></tr></thead>
+            <tbody id="bookingsBody"><tr><td colspan="6" class="empty-row">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TESTIMONIALS -->
+      <div class="page" id="page-testimonials">
+        <div class="page-head">
+          <div><h1>Testimonials</h1><p>Shown in the "What students are saying" section on the public site.</p></div>
+        </div>
+        <div class="setup-note" id="testiSetupNote" style="display:none;"></div>
+        <div class="card">
+          <h3 id="testiFormTitle">Add a testimonial</h3>
+          <input type="hidden" id="testiId">
+          <div class="field"><label>Quote</label><textarea id="testiQuote" placeholder="What the student said…"></textarea></div>
+          <div class="field-row">
+            <div class="field"><label>Name</label><input id="testiName" placeholder="e.g. Tomiwa A."></div>
+            <div class="field"><label>Role</label><input id="testiRole" placeholder="e.g. 300L, Mechatronics Engineering"></div>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select id="testiPublished"><option value="true">Published — visible on site</option><option value="false">Draft — hidden</option></select>
+          </div>
+          <div class="btn-row">
+            <button class="btn" onclick="saveTesti()">Save testimonial</button>
+            <button class="btn secondary" id="testiCancelBtn" style="display:none;" onclick="resetTestiForm()">Cancel edit</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-toolbar"><strong style="font-size:13px;">All testimonials</strong><button class="icon-btn" onclick="loadTestiAdmin()">⟳ Refresh</button></div>
+          <table>
+            <thead><tr><th>Quote</th><th>Name</th><th>Status</th><th></th></tr></thead>
+            <tbody id="testiBody"><tr><td colspan="4" class="empty-row">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="page" id="page-settings">
+        <div class="page-head">
+          <div><h1>Site Settings</h1><p>Contact details shown in the footer of the public site.</p></div>
+        </div>
+        <div class="setup-note" id="settingsSetupNote" style="display:none;"></div>
+        <div class="card">
+          <h3>Contact details</h3>
+          <div class="field-row">
+            <div class="field"><label>Footer phone</label><input id="setPhone" placeholder="+234 XXX XXX XXXX"></div>
+            <div class="field"><label>Footer email</label><input id="setEmail" placeholder="hello@transitcore.ng"></div>
+          </div>
+          <div class="btn-row"><button class="btn" onclick="saveSettings()">Save settings</button></div>
+        </div>
+        <div class="card">
+          <h3>WhatsApp booking number</h3>
+          <p style="font-size:12.5px;color:var(--sage);margin-bottom:14px;">This is set directly in <code>index.html</code> as <code>WHATSAPP_NUMBER</code> for now — update it there before launch.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================
+// ===== SUPABASE (shared project) =====
+// ============================================
+const SUPABASE_URL = 'https://vrcveqhkxmvmnqeavzrc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyY3ZlcWhreG12bW5xZWF2enJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MjkxNzIsImV4cCI6MjA5OTMwNTE3Mn0.aHWBES5ib8FWKgt6JFuq2RWZj0PpFq5W7tyeydIonoI';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Change this before you share this file with anyone else on the team.
+const ADMIN_PASSCODE = "John+2558";
+
+let routesCache = [], bookingsCache = [], testiCache = [];
+
+// ============================================
+// ===== GATE =====
+// ============================================
+function tryUnlock(){
+  const val = document.getElementById('gateInput').value;
+  if(val === ADMIN_PASSCODE){
+    sessionStorage.setItem('tc_admin_ok','1');
+    document.getElementById('gateScreen').style.display='none';
+    document.getElementById('shell').style.display='grid';
+    initAdmin();
+  } else {
+    document.getElementById('gateError').textContent = 'Wrong passcode. Try again.';
+  }
+}
+document.getElementById('gateInput').addEventListener('keydown', e=>{ if(e.key==='Enter') tryUnlock(); });
+function logout(){
+  sessionStorage.removeItem('tc_admin_ok');
+  location.reload();
+}
+if(sessionStorage.getItem('tc_admin_ok') === '1'){
+  document.getElementById('gateScreen').style.display='none';
+  document.getElementById('shell').style.display='grid';
+  window.addEventListener('DOMContentLoaded', initAdmin);
+}
+
+// ============================================
+// ===== NAV =====
+// ============================================
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-link').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelector(`.sb-link[data-page="${name}"]`).classList.add('active');
+}
+
+function showToast(message, type='success'){
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = 'toast ' + type;
+  void toast.offsetWidth;
+  toast.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=> toast.classList.remove('show'), 3800);
+}
+
+const SETUP_HINT = 'This table doesn\'t exist in Supabase yet, so changes here won\'t save until it\'s created. Run <strong>supabase_schema.sql</strong> (included with this project) in your Supabase SQL editor, then refresh.';
+
+// ============================================
+// ===== INIT =====
+// ============================================
+async function initAdmin(){
+  await Promise.all([loadRoutesAdmin(), loadBookingsAdmin(), loadTestiAdmin(), loadSettingsAdmin()]);
+  updateStats();
+}
+
+function updateStats(){
+  document.getElementById('statBookings').textContent = bookingsCache.length;
+  const revenue = bookingsCache.reduce((sum,b)=> sum + (Number(b.fare)||0), 0);
+  document.getElementById('statRevenue').textContent = '₦' + revenue.toLocaleString();
+  document.getElementById('statRoutes').textContent = routesCache.filter(r=>r.active !== false).length;
+  document.getElementById('statTesti').textContent = testiCache.filter(t=>t.published !== false).length;
+
+  const recent = bookingsCache.slice().reverse().slice(0,6);
+  const body = document.getElementById('dashRecentBody');
+  body.innerHTML = recent.length ? recent.map(b=>`
+    <tr>
+      <td class="mono">${b.code||'—'}</td>
+      <td>${b.cust_name||'—'}</td>
+      <td>${b.origin||'—'} → ${b.destination||'—'}</td>
+      <td class="mono">${b.travel_date||'—'}</td>
+      <td class="mono">₦${Number(b.fare||0).toLocaleString()}</td>
+    </tr>`).join('') : '<tr><td colspan="5" class="empty-row">No bookings yet.</td></tr>';
+}
+
+// ============================================
+// ===== ROUTES (Supabase table: routes) =====
+// ============================================
+async function loadRoutesAdmin(){
+  try{
+    const { data, error } = await sb.from('routes').select('*').order('destination', {ascending:true});
+    if(error) throw error;
+    routesCache = data || [];
+    document.getElementById('routesSetupNote').style.display = 'none';
+  }catch(e){
+    routesCache = [];
+    document.getElementById('routesSetupNote').style.display = 'block';
+    document.getElementById('routesSetupNote').innerHTML = SETUP_HINT;
+  }
+  renderRoutesTable();
+  updateStats();
+}
+function renderRoutesTable(){
+  const body = document.getElementById('routesBody');
+  body.innerHTML = routesCache.length ? routesCache.map(r=>`
+    <tr>
+      <td>${r.destination}</td>
+      <td>${r.operator||'—'}</td>
+      <td class="mono">₦${Number(r.price||0).toLocaleString()}</td>
+      <td><span class="badge ${r.active!==false?'on':'off'}">${r.active!==false?'Active':'Inactive'}</span></td>
+      <td><div class="row-actions">
+        <button class="icon-btn" onclick='editRoute(${JSON.stringify(r).replace(/'/g,"&apos;")})'>Edit</button>
+        <button class="icon-btn danger" onclick="deleteRoute('${r.id}')">Delete</button>
+      </div></td>
+    </tr>`).join('') : '<tr><td colspan="5" class="empty-row">No routes yet — add one above, or run supabase_schema.sql for starter routes.</td></tr>';
+}
+function editRoute(r){
+  document.getElementById('routeId').value = r.id;
+  document.getElementById('routeDest').value = r.destination;
+  document.getElementById('routeOp').value = r.operator || 'GIGM';
+  document.getElementById('routePrice').value = r.price;
+  document.getElementById('routeActive').value = String(r.active !== false);
+  document.getElementById('routeFormTitle').textContent = 'Edit route';
+  document.getElementById('routeCancelBtn').style.display = 'inline-block';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function resetRouteForm(){
+  document.getElementById('routeId').value='';
+  document.getElementById('routeDest').value='';
+  document.getElementById('routeOp').value='GIGM';
+  document.getElementById('routePrice').value='';
+  document.getElementById('routeActive').value='true';
+  document.getElementById('routeFormTitle').textContent='Add a route';
+  document.getElementById('routeCancelBtn').style.display='none';
+}
+async function saveRoute(){
+  const id = document.getElementById('routeId').value;
+  const destination = document.getElementById('routeDest').value.trim();
+  const operator = document.getElementById('routeOp').value.trim() || 'GIGM';
+  const price = Number(document.getElementById('routePrice').value);
+  const active = document.getElementById('routeActive').value === 'true';
+  if(!destination || !price){ showToast('Destination and fare are required.', 'error'); return; }
+  try{
+    if(id){
+      const { error } = await sb.from('routes').update({destination, operator, price, active}).eq('id', id);
+      if(error) throw error;
+      showToast('✅ Route updated: ' + destination);
+    }else{
+      const { error } = await sb.from('routes').insert([{destination, operator, price, active}]);
+      if(error) throw error;
+      showToast('✅ Route added: ' + destination);
+    }
+    resetRouteForm();
+    await loadRoutesAdmin();
+  }catch(e){
+    showToast('⚠️ Could not save (' + e.message + ')', 'error');
+  }
+}
+async function deleteRoute(id){
+  if(!confirm('Delete this route? It will disappear from the public site immediately.')) return;
+  try{
+    const { error } = await sb.from('routes').delete().eq('id', id);
+    if(error) throw error;
+    showToast('🗑️ Route deleted');
+    await loadRoutesAdmin();
+  }catch(e){
+    showToast('⚠️ Could not delete (' + e.message + ')', 'error');
+  }
+}
+
+// ============================================
+// ===== BOOKINGS (Supabase table: bookings — read-only here) =====
+// ============================================
+async function loadBookingsAdmin(){
+  try{
+    const { data, error } = await sb.from('bookings').select('*').order('issued_at', {ascending:false});
+    if(error) throw error;
+    bookingsCache = data || [];
+  }catch(e){
+    bookingsCache = [];
+    console.warn('bookings load failed:', e.message);
+  }
+  renderBookingsTable();
+  updateStats();
+}
+function renderBookingsTable(){
+  const q = (document.getElementById('bookingSearch').value || '').toLowerCase();
+  const filtered = bookingsCache.filter(b =>
+    (b.cust_name||'').toLowerCase().includes(q) ||
+    (b.code||'').toLowerCase().includes(q) ||
+    (b.cust_reg_no||'').toLowerCase().includes(q)
+  );
+  const body = document.getElementById('bookingsBody');
+  body.innerHTML = filtered.length ? filtered.map(b=>`
+    <tr>
+      <td class="mono">${b.code||'—'}</td>
+      <td>${b.cust_name||'—'}</td>
+      <td>${b.origin||'—'} → ${b.destination||'—'}</td>
+      <td class="mono">${b.travel_date||'—'}</td>
+      <td class="mono">₦${Number(b.fare||0).toLocaleString()}</td>
+      <td class="mono">${b.cust_phone||'—'}</td>
+    </tr>`).join('') : '<tr><td colspan="6" class="empty-row">No bookings found.</td></tr>';
+}
+
+// ============================================
+// ===== TESTIMONIALS (Supabase table: testimonials) =====
+// ============================================
+async function loadTestiAdmin(){
+  try{
+    const { data, error } = await sb.from('testimonials').select('*').order('created_at', {ascending:false});
+    if(error) throw error;
+    testiCache = data || [];
+    document.getElementById('testiSetupNote').style.display = 'none';
+  }catch(e){
+    testiCache = [];
+    document.getElementById('testiSetupNote').style.display = 'block';
+    document.getElementById('testiSetupNote').innerHTML = SETUP_HINT;
+  }
+  renderTestiTable();
+  updateStats();
+}
+function renderTestiTable(){
+  const body = document.getElementById('testiBody');
+  body.innerHTML = testiCache.length ? testiCache.map(t=>`
+    <tr>
+      <td style="max-width:320px;">${(t.quote||'').slice(0,90)}${(t.quote||'').length>90?'…':''}</td>
+      <td>${t.name||'—'}</td>
+      <td><span class="badge ${t.published!==false?'on':'off'}">${t.published!==false?'Published':'Draft'}</span></td>
+      <td><div class="row-actions">
+        <button class="icon-btn" onclick='editTesti(${JSON.stringify(t).replace(/'/g,"&apos;")})'>Edit</button>
+        <button class="icon-btn danger" onclick="deleteTesti('${t.id}')">Delete</button>
+      </div></td>
+    </tr>`).join('') : '<tr><td colspan="4" class="empty-row">No testimonials yet — add one above.</td></tr>';
+}
+function editTesti(t){
+  document.getElementById('testiId').value = t.id;
+  document.getElementById('testiQuote').value = t.quote;
+  document.getElementById('testiName').value = t.name;
+  document.getElementById('testiRole').value = t.role || '';
+  document.getElementById('testiPublished').value = String(t.published !== false);
+  document.getElementById('testiFormTitle').textContent = 'Edit testimonial';
+  document.getElementById('testiCancelBtn').style.display = 'inline-block';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function resetTestiForm(){
+  document.getElementById('testiId').value='';
+  document.getElementById('testiQuote').value='';
+  document.getElementById('testiName').value='';
+  document.getElementById('testiRole').value='';
+  document.getElementById('testiPublished').value='true';
+  document.getElementById('testiFormTitle').textContent='Add a testimonial';
+  document.getElementById('testiCancelBtn').style.display='none';
+}
+async function saveTesti(){
+  const id = document.getElementById('testiId').value;
+  const quote = document.getElementById('testiQuote').value.trim();
+  const name = document.getElementById('testiName').value.trim();
+  const role = document.getElementById('testiRole').value.trim();
+  const published = document.getElementById('testiPublished').value === 'true';
+  if(!quote || !name){ showToast('Quote and name are required.', 'error'); return; }
+  try{
+    if(id){
+      const { error } = await sb.from('testimonials').update({quote, name, role, published}).eq('id', id);
+      if(error) throw error;
+      showToast('✅ Testimonial updated');
+    }else{
+      const { error } = await sb.from('testimonials').insert([{quote, name, role, published}]);
+      if(error) throw error;
+      showToast('✅ Testimonial added');
+    }
+    resetTestiForm();
+    await loadTestiAdmin();
+  }catch(e){
+    showToast('⚠️ Could not save (' + e.message + ')', 'error');
+  }
+}
+async function deleteTesti(id){
+  if(!confirm('Delete this testimonial?')) return;
+  try{
+    const { error } = await sb.from('testimonials').delete().eq('id', id);
+    if(error) throw error;
+    showToast('🗑️ Testimonial deleted');
+    await loadTestiAdmin();
+  }catch(e){
+    showToast('⚠️ Could not delete (' + e.message + ')', 'error');
+  }
+}
+
+// ============================================
+// ===== SETTINGS (Supabase table: site_settings, key/value) =====
+// ============================================
+async function loadSettingsAdmin(){
+  try{
+    const { data, error } = await sb.from('site_settings').select('*');
+    if(error) throw error;
+    const map = {};
+    (data||[]).forEach(r=> map[r.key]=r.value);
+    document.getElementById('setPhone').value = map.footer_phone || '';
+    document.getElementById('setEmail').value = map.footer_email || '';
+    document.getElementById('settingsSetupNote').style.display = 'none';
+  }catch(e){
+    document.getElementById('settingsSetupNote').style.display = 'block';
+    document.getElementById('settingsSetupNote').innerHTML = SETUP_HINT;
+  }
+}
+async function saveSettings(){
+  const phone = document.getElementById('setPhone').value.trim();
+  const email = document.getElementById('setEmail').value.trim();
+  try{
+    const { error: e1 } = await sb.from('site_settings').upsert({key:'footer_phone', value:phone}, {onConflict:'key'});
+    const { error: e2 } = await sb.from('site_settings').upsert({key:'footer_email', value:email}, {onConflict:'key'});
+    if(e1 || e2) throw (e1 || e2);
+    showToast('✅ Settings saved');
+  }catch(e){
+    showToast('⚠️ Could not save (' + e.message + ')', 'error');
+  }
+}
+</script>
+</body>
+</html>
