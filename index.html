@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TransitCore — Student Transit, Sorted</title>
+<meta name="description" content="TransitCore coordinates verified intercity travel for Landmark University students, in partnership with GIGM. Real tickets, real support, no wahala.">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root{
+    --emerald-deep:#0B3D2E;
+    --emerald-black:#0A1B15;
+    --emerald-mid:#123D2F;
+    --emerald-soft:#1B4A38;
+    --brass:#C9A34E;
+    --brass-light:#E7CB84;
+    --ivory:#F6F1E2;
+    --ivory-dim:#EFE8D2;
+    --sage:#8AA894;
+    --rust:#B5482A;
+    --ink:#132018;
+    --line: rgba(201,163,78,0.28);
+    --line-dark: rgba(201,163,78,0.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--ivory);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  img{max-width:100%;display:block;}
+  a{color:inherit;text-decoration:none;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 28px;}
+  h1,h2,h3{font-family:'Fraunces',serif;letter-spacing:-0.01em;}
+  ::selection{background:var(--brass-light);color:var(--emerald-black);}
+
+  /* ===== NAV ===== */
+  .nav{position:sticky;top:0;z-index:50;background:rgba(10,27,21,0.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line-dark);}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;max-width:1180px;margin:0 auto;}
+  .nav-brand{display:flex;align-items:baseline;gap:9px;}
+  .nav-brand .word{font-family:'Fraunces',serif;font-weight:700;font-size:20px;color:var(--ivory);}
+  .nav-brand .tag{font-size:9px;letter-spacing:1.6px;color:var(--sage);text-transform:uppercase;}
+  .nav-links{display:flex;gap:32px;align-items:center;}
+  .nav-links a{font-size:13px;color:var(--ivory-dim);font-weight:500;transition:color 0.2s;}
+  .nav-links a:hover{color:var(--brass-light);}
+  .nav-cta{background:var(--brass);color:var(--emerald-black);font-weight:700;font-size:13px;padding:10px 20px;border-radius:30px;transition:transform 0.25s;}
+  .nav-cta:hover{transform:scale(1.04);}
+  .nav-toggle{display:none;background:none;border:none;color:var(--ivory);font-size:22px;cursor:pointer;}
+  @media (max-width:860px){
+    .nav-links{position:fixed;top:64px;left:0;right:0;background:var(--emerald-black);flex-direction:column;padding:20px 28px;gap:18px;border-bottom:1px solid var(--line);transform:translateY(-130%);transition:transform 0.3s ease;}
+    .nav-links.open{transform:translateY(0);}
+    .nav-toggle{display:block;}
+  }
+
+  /* ===== HERO ===== */
+  .hero{background:radial-gradient(ellipse at 20% -10%, #163f30 0%, var(--emerald-black) 55%);color:var(--ivory);padding:78px 0 60px;position:relative;overflow:hidden;}
+  .hero::after{content:'';position:absolute;inset:0;background-image:radial-gradient(circle, rgba(201,163,78,0.06) 1px, transparent 1px);background-size:26px 26px;pointer-events:none;}
+  .hero-inner{max-width:1180px;margin:0 auto;padding:0 28px;display:grid;grid-template-columns:1.05fr 0.95fr;gap:56px;align-items:center;position:relative;}
+  @media (max-width:920px){.hero-inner{grid-template-columns:1fr;gap:44px;}}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--brass-light);background:rgba(201,163,78,0.1);border:1px solid var(--line);padding:6px 14px;border-radius:20px;text-transform:uppercase;}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:#4CAF50;animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
+  .hero h1{font-size:clamp(34px,5vw,56px);font-weight:700;line-height:1.06;margin:22px 0 20px;color:var(--ivory);}
+  .hero h1 em{font-style:normal;color:var(--brass-light);}
+  .hero p.lead{font-size:16.5px;color:var(--sage);max-width:480px;line-height:1.65;margin-bottom:30px;}
+  .hero-ctas{display:flex;gap:14px;flex-wrap:wrap;}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 26px;border-radius:10px;font-weight:700;font-size:14.5px;cursor:pointer;border:none;transition:all 0.25s;font-family:'Inter',sans-serif;}
+  .btn-primary{background:var(--brass);color:var(--emerald-black);}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(201,163,78,0.28);}
+  .btn-ghost{background:transparent;color:var(--ivory);border:1px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--brass);background:rgba(201,163,78,0.06);}
+  .hero-note{margin-top:20px;font-size:12px;color:var(--sage);display:flex;align-items:center;gap:8px;}
+
+  /* ===== DEPARTURE BOARD (signature element) ===== */
+  .board{background:linear-gradient(180deg,#0d2a20,#091b14);border:1px solid var(--line);border-radius:16px;padding:20px 20px 14px;box-shadow:0 30px 70px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03);}
+  .board-head{display:flex;justify-content:space-between;align-items:center;padding:2px 6px 14px;border-bottom:1px solid var(--line-dark);margin-bottom:12px;}
+  .board-head .bh-title{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--brass-light);text-transform:uppercase;}
+  .board-head .bh-live{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--sage);display:flex;align-items:center;gap:6px;}
+  .board-head .bh-live .dot{width:6px;height:6px;border-radius:50%;background:#4CAF50;}
+  .board-row{display:grid;grid-template-columns:1.3fr 0.7fr 0.9fr;gap:6px;align-items:center;padding:10px 6px;border-bottom:1px dashed var(--line-dark);}
+  .board-row:last-child{border-bottom:none;}
+  .flap-group{display:flex;gap:3px;}
+  .flap{position:relative;background:#0f2a20;border-radius:3px;overflow:hidden;height:26px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--brass-light);font-size:13px;box-shadow:inset 0 0 0 1px rgba(201,163,78,0.15);min-width:15px;}
+  .flap::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(0,0,0,0.4);z-index:2;}
+  .flap span{transition:opacity 0.15s;}
+  .board-time{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ivory-dim);}
+  .board-status{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.5px;padding:4px 8px;border-radius:4px;text-align:center;text-transform:uppercase;}
+  .status-ontime{background:rgba(76,175,80,0.15);color:#7fd88a;}
+  .status-board{background:rgba(201,163,78,0.18);color:var(--brass-light);}
+  .status-sched{background:rgba(138,168,148,0.12);color:var(--sage);}
+  .board-foot{margin-top:12px;padding-top:12px;border-top:1px solid var(--line-dark);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--sage);text-align:center;letter-spacing:0.5px;}
+
+  /* ===== TRUST BAR ===== */
+  .trust{background:var(--emerald-mid);border-top:1px solid var(--line-dark);border-bottom:1px solid var(--line-dark);padding:22px 0;}
+  .trust-inner{max-width:1180px;margin:0 auto;padding:0 28px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:18px;}
+  .trust-item{display:flex;align-items:center;gap:10px;color:var(--ivory-dim);font-size:13px;font-weight:500;}
+  .trust-item .ic{color:var(--brass-light);font-size:16px;}
+
+  /* ===== SECTION SHARED ===== */
+  section{padding:88px 0;}
+  .sec-head{max-width:640px;margin-bottom:52px;}
+  .sec-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--rust);text-transform:uppercase;margin-bottom:14px;display:block;}
+  .sec-head h2{font-size:clamp(26px,3.4vw,38px);font-weight:600;color:var(--ink);line-height:1.15;}
+  .sec-head p{color:#5c6b60;font-size:15.5px;margin-top:14px;max-width:520px;line-height:1.6;}
+
+  /* ===== HOW IT WORKS ===== */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid #e3dcc4;border-radius:16px;overflow:hidden;background:#fff;}
+  @media (max-width:800px){.steps{grid-template-columns:1fr;}}
+  .step{padding:36px 30px;border-right:1px solid #e3dcc4;position:relative;}
+  .step:last-child{border-right:none;}
+  @media (max-width:800px){.step{border-right:none;border-bottom:1px solid #e3dcc4;}.step:last-child{border-bottom:none;}}
+  .step .num{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--brass);font-weight:600;letter-spacing:1px;}
+  .step h3{font-size:19px;margin:14px 0 8px;font-weight:600;}
+  .step p{font-size:13.8px;color:#5c6b60;line-height:1.6;}
+
+  /* ===== ROUTES ===== */
+  .routes-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+  @media (max-width:900px){.routes-grid{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:600px){.routes-grid{grid-template-columns:1fr;}}
+  .route-card{background:#fff;border:1px solid #e3dcc4;border-radius:14px;padding:22px;transition:all 0.25s;position:relative;overflow:hidden;}
+  .route-card:hover{border-color:var(--brass);transform:translateY(-3px);box-shadow:0 14px 30px rgba(11,61,46,0.08);}
+  .route-card .rc-route{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8a9188;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
+  .route-card .rc-dest{font-family:'Fraunces',serif;font-size:21px;font-weight:600;margin-bottom:4px;}
+  .route-card .rc-op{font-size:12px;color:#8a9188;margin-bottom:16px;}
+  .route-card .rc-foot{display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px dashed #ddd4b8;}
+  .route-card .rc-price{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--emerald-deep);font-size:15px;}
+  .route-card .rc-price span{font-size:10px;color:#8a9188;font-weight:400;display:block;font-family:'Inter',sans-serif;}
+  .route-card .rc-book{font-size:12px;font-weight:700;color:var(--rust);display:flex;align-items:center;gap:4px;}
+  .routes-note{text-align:center;margin-top:26px;color:#8a9188;font-size:12.5px;}
+
+  /* ===== WHY ===== */
+  .why{background:var(--emerald-black);color:var(--ivory);}
+  .why .sec-head h2{color:var(--ivory);}
+  .why .sec-head p{color:var(--sage);}
+  .why .sec-eyebrow{color:var(--brass-light);}
+  .why-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line-dark);border:1px solid var(--line-dark);border-radius:16px;overflow:hidden;}
+  @media (max-width:700px){.why-grid{grid-template-columns:1fr;}}
+  .why-item{background:var(--emerald-black);padding:32px;}
+  .why-item .wi-ic{font-size:22px;margin-bottom:14px;display:block;}
+  .why-item h3{font-family:'Fraunces',serif;font-size:18px;font-weight:600;margin-bottom:8px;color:var(--brass-light);}
+  .why-item p{font-size:13.8px;color:var(--sage);line-height:1.65;}
+
+  /* ===== TESTIMONIALS ===== */
+  .testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  @media (max-width:900px){.testi-grid{grid-template-columns:1fr;}}
+  .testi-card{background:#fff;border:1px solid #e3dcc4;border-radius:14px;padding:26px;}
+  .testi-card .tc-quote{font-family:'Fraunces',serif;font-size:15.5px;line-height:1.6;color:var(--ink);margin-bottom:18px;font-style:italic;}
+  .tc-person{display:flex;align-items:center;gap:10px;}
+  .tc-avatar{width:36px;height:36px;border-radius:50%;background:var(--emerald-deep);color:var(--brass-light);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:600;font-size:14px;}
+  .tc-name{font-size:13.5px;font-weight:700;}
+  .tc-role{font-size:11.5px;color:#8a9188;}
+
+  /* ===== PARTNER CTA ===== */
+  .cta-band{background:linear-gradient(120deg, var(--emerald-deep), var(--emerald-mid));color:var(--ivory);border-radius:22px;padding:52px 44px;display:flex;justify-content:space-between;align-items:center;gap:30px;flex-wrap:wrap;position:relative;overflow:hidden;}
+  .cta-band::after{content:'✈';position:absolute;right:-10px;top:-20px;font-size:180px;color:rgba(201,163,78,0.06);}
+  .cta-band h2{font-size:clamp(22px,2.8vw,30px);max-width:440px;position:relative;}
+  .cta-band p{color:var(--sage);margin-top:10px;max-width:420px;font-size:14px;position:relative;}
+  .cta-actions{display:flex;gap:12px;flex-wrap:wrap;position:relative;}
+
+  /* ===== FOOTER ===== */
+  footer{background:var(--emerald-black);color:var(--sage);padding:56px 0 26px;border-top:1px solid var(--line-dark);}
+  .foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px;margin-bottom:44px;}
+  @media (max-width:800px){.foot-grid{grid-template-columns:1fr 1fr;}}
+  @media (max-width:520px){.foot-grid{grid-template-columns:1fr;}}
+  .foot-brand .word{font-family:'Fraunces',serif;font-weight:700;font-size:19px;color:var(--ivory);}
+  .foot-brand p{font-size:13px;margin-top:12px;max-width:260px;line-height:1.6;}
+  .foot-col h4{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--brass-light);margin-bottom:14px;}
+  .foot-col a, .foot-col span{display:block;font-size:13px;margin-bottom:10px;color:var(--sage);}
+  .foot-col a:hover{color:var(--ivory);}
+  .foot-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:22px;border-top:1px solid var(--line-dark);font-size:12px;flex-wrap:wrap;gap:10px;}
+
+  /* ===== BOOKING MODAL ===== */
+  .modal-overlay{position:fixed;inset:0;background:rgba(10,27,21,0.72);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:200;padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--ivory);border-radius:18px;max-width:440px;width:100%;padding:32px;position:relative;box-shadow:0 30px 80px rgba(0,0,0,0.5);}
+  .modal h3{font-size:22px;margin-bottom:8px;}
+  .modal p{font-size:13.5px;color:#5c6b60;margin-bottom:22px;line-height:1.55;}
+  .modal-close{position:absolute;top:18px;right:18px;background:none;border:none;font-size:18px;cursor:pointer;color:#8a9188;}
+  .modal-field{margin-bottom:14px;}
+  .modal-field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#8a9188;margin-bottom:6px;}
+  .modal-field select, .modal-field input{width:100%;padding:11px 13px;border-radius:8px;border:1px solid #ddd4b8;background:#fff;font-family:'Inter',sans-serif;font-size:14px;}
+  .modal-field select:focus, .modal-field input:focus{outline:none;border-color:var(--brass);}
+  .modal .btn-primary{width:100%;justify-content:center;margin-top:6px;}
+
+  .fade-up{opacity:0;transform:translateY(18px);transition:all 0.7s cubic-bezier(.16,.8,.3,1);}
+  .fade-up.in{opacity:1;transform:translateY(0);}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-brand">
+      <span class="word">TransitCore</span>
+      <span class="tag">· Student Transit, Sorted</span>
+    </div>
+    <div class="nav-links" id="navLinks">
+      <a href="#routes">Routes</a>
+      <a href="#how">How it works</a>
+      <a href="#why">Why us</a>
+      <a href="#partners">Partners</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <a href="#" class="nav-cta" onclick="openBooking(event)">Book a trip</a>
+      <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div>
+      <span class="eyebrow"><span class="dot"></span> Official GIGM Campus Partner</span>
+      <h1>Board with confidence.<br>Every trip, <em>verified</em> end to end.</h1>
+      <p class="lead">TransitCore coordinates intercity travel for Landmark University students — real GIGM tickets, real desk agents on campus, real support on WhatsApp. No middlemen wahala.</p>
+      <div class="hero-ctas">
+        <a href="#" class="btn btn-primary" onclick="openBooking(event)">✨ Book a trip</a>
+        <a href="#routes" class="btn btn-ghost">See all routes</a>
+      </div>
+      <div class="hero-note">🎓 Approved by Landmark University Student Affairs · Valid ID mandatory for every trip</div>
+    </div>
+
+    <div class="board" id="board">
+      <div class="board-head">
+        <span class="bh-title">Departures · Landmark University</span>
+        <span class="bh-live"><span class="dot"></span> Live</span>
+      </div>
+      <div id="boardRows"></div>
+      <div class="board-foot">TRANSITCORE × GIGM — GATE OPENS 30 MIN BEFORE DEPARTURE</div>
+    </div>
+  </div>
+</header>
+
+<div class="trust">
+  <div class="trust-inner">
+    <div class="trust-item"><span class="ic">🛡️</span> Verified GIGM tickets, not screenshots</div>
+    <div class="trust-item"><span class="ic">💬</span> WhatsApp support, before &amp; after travel</div>
+    <div class="trust-item"><span class="ic">🎓</span> Built by a student, for students</div>
+    <div class="trust-item"><span class="ic">📍</span> Desk on campus — real humans, not a call center</div>
+  </div>
+</div>
+
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head fade-up">
+      <span class="sec-eyebrow">The process</span>
+      <h2>Three steps between you and your bus.</h2>
+      <p>No app to download, no long queue at the park. Book from your hostel, get your ticket, travel.</p>
+    </div>
+    <div class="steps fade-up">
+      <div class="step">
+        <span class="num">01</span>
+        <h3>Pick your route</h3>
+        <p>Choose your destination and travel date — either on WhatsApp or at the campus desk. We'll confirm seat availability with GIGM in real time.</p>
+      </div>
+      <div class="step">
+        <span class="num">02</span>
+        <h3>Pay &amp; get your ticket</h3>
+        <p>Pay at the desk or via transfer. You get a real ticket instantly — passenger details, QR code, seat and departure time, all on one slip.</p>
+      </div>
+      <div class="step">
+        <span class="num">03</span>
+        <h3>Show up &amp; travel</h3>
+        <p>Arrive 30 minutes early with your ticket and valid ID. That's it — you're on your way, and we're a WhatsApp message away the whole trip.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="routes" style="background:#FBF8EE;">
+  <div class="wrap">
+    <div class="sec-head fade-up">
+      <span class="sec-eyebrow">Where we go</span>
+      <h2>Routes out of Landmark University.</h2>
+      <p>Every route runs on GIGM's licensed fleet. Fares below are indicative — final fare is confirmed at booking.</p>
+    </div>
+    <div class="routes-grid fade-up" id="routesGrid"></div>
+    <div class="routes-note">Don't see your destination? <a href="#" onclick="openBooking(event)" style="color:var(--rust);font-weight:600;">Ask us on WhatsApp</a> — we're adding routes every semester.</div>
+  </div>
+</section>
+
+<section id="why" class="why">
+  <div class="wrap">
+    <div class="sec-head fade-up">
+      <span class="sec-eyebrow">Why TransitCore</span>
+      <h2>We're not a transport company.<br>We're the layer that makes it trustworthy.</h2>
+      <p>TransitCore doesn't own buses. We coordinate — verifying every booking against GIGM's system so you're never left guessing.</p>
+    </div>
+    <div class="why-grid fade-up">
+      <div class="why-item">
+        <span class="wi-ic">🎟️</span>
+        <h3>Real tickets, always</h3>
+        <p>Every booking generates a verifiable ticket with a unique code and QR — not a forwarded screenshot from a park agent.</p>
+      </div>
+      <div class="why-item">
+        <span class="wi-ic">💬</span>
+        <h3>Support that answers</h3>
+        <p>A real WhatsApp line, run by students who understand what "I have a 9am class after this trip" actually means.</p>
+      </div>
+      <div class="why-item">
+        <span class="wi-ic">🪪</span>
+        <h3>Safety by default</h3>
+        <p>Valid ID is mandatory on every trip. It's an extra step at the gate that we think is worth it.</p>
+      </div>
+      <div class="why-item">
+        <span class="wi-ic">🤝</span>
+        <h3>Licensed, not casual</h3>
+        <p>We work exclusively with GIGM's licensed fleet — no unregistered vehicles, no unverified drivers.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="testimonials">
+  <div class="wrap">
+    <div class="sec-head fade-up">
+      <span class="sec-eyebrow">From the desk</span>
+      <h2>What students are saying.</h2>
+    </div>
+    <div class="testi-grid fade-up" id="testiGrid"></div>
+  </div>
+</section>
+
+<section id="partners" style="padding-top:0;">
+  <div class="wrap">
+    <div class="cta-band fade-up">
+      <div>
+        <h2>Ready for your next trip home?</h2>
+        <p>Message us on WhatsApp with your route and travel date — we'll confirm your seat and send your ticket within minutes.</p>
+      </div>
+      <div class="cta-actions">
+        <a href="#" class="btn btn-primary" onclick="openBooking(event)">✨ Book a trip</a>
+        <a href="#contact" class="btn btn-ghost">Talk to the desk</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer id="contact">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <span class="word">TransitCore</span>
+        <p>Student-focused intercity travel coordination, built at Landmark University and run in partnership with GIGM. A MAG'NESTY Group company.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Explore</h4>
+        <a href="#routes">Routes</a>
+        <a href="#how">How it works</a>
+        <a href="#why">Why us</a>
+        <a href="#testimonials">Testimonials</a>
+      </div>
+      <div class="foot-col">
+        <h4>Get in touch</h4>
+        <span id="footPhone">+234 XXX XXX XXXX</span>
+        <span id="footEmail">hello@transitcore.ng</span>
+        <span>Landmark University, Omu-Aran</span>
+      </div>
+      <div class="foot-col">
+        <h4>Partner</h4>
+        <span>Official GIGM Campus Partner</span>
+        <span>Approved by Landmark University</span>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© <span id="yr"></span> TransitCore. All rights reserved.</span>
+      <span>Student Transit, Sorted.</span>
+    </div>
+  </div>
+</footer>
+
+<div class="modal-overlay" id="bookingModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeBooking()">✕</button>
+    <h3>Book your trip</h3>
+    <p>Tell us where you're headed — we'll open WhatsApp with your details pre-filled so the desk can confirm your seat right away.</p>
+    <div class="modal-field">
+      <label>Destination</label>
+      <select id="mDest"></select>
+    </div>
+    <div class="modal-field">
+      <label>Travel date</label>
+      <input type="date" id="mDate">
+    </div>
+    <div class="modal-field">
+      <label>Your name</label>
+      <input type="text" id="mName" placeholder="e.g. Adaeze Okonkwo">
+    </div>
+    <button class="btn btn-primary" onclick="submitBooking()">Continue on WhatsApp →</button>
+  </div>
+</div>
+
+<script>
+// ============================================
+// ===== SUPABASE (shared project) =====
+// ============================================
+const SUPABASE_URL = 'https://vrcveqhkxmvmnqeavzrc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyY3ZlcWhreG12bW5xZWF2enJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MjkxNzIsImV4cCI6MjA5OTMwNTE3Mn0.aHWBES5ib8FWKgt6JFuq2RWZj0PpFq5W7tyeydIonoI';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const WHATSAPP_NUMBER = '234XXXXXXXXXX'; // TODO: replace with the real desk WhatsApp number
+
+// ============================================
+// ===== DEFAULT CONTENT (used until Supabase tables exist / admin edits them) =====
+// ============================================
+const DEFAULT_ROUTES = [
+  {destination:'Lagos Island', operator:'GIGM', price:15000, active:true},
+  {destination:'Lagos Mainland', operator:'GIGM', price:14000, active:true},
+  {destination:'Ilorin Airport', operator:'GIGM', price:20500, active:true},
+  {destination:'Abuja', operator:'GIGM', price:16500, active:true},
+  {destination:'Port Harcourt', operator:'GIGM', price:18000, active:true},
+  {destination:'Kaduna', operator:'GIGM', price:13500, active:true},
+  {destination:'Benin', operator:'GIGM', price:11000, active:true},
+  {destination:'Ibadan', operator:'GIGM', price:8500, active:true},
+  {destination:'Enugu', operator:'GIGM', price:14500, active:true},
+];
+
+const DEFAULT_TESTIMONIALS = [
+  {quote:"I booked from my hostel at night and had my ticket before breakfast. Didn't have to step foot in the park until travel day.", name:'Tomiwa A.', role:'300L, Mechatronics Engineering'},
+  {quote:"The WhatsApp line actually replies. When my bus was running late they told me before I even asked.", name:'Chiamaka O.', role:'200L, Computer Science'},
+  {quote:"First time using them was for the Ilorin Airport run. Ticket looked official, driver checked my ID at the gate — felt properly organized.", name:'David E.', role:'400L, Biochemistry'},
+];
+
+const DEFAULT_SETTINGS = { footer_phone:'+234 XXX XXX XXXX', footer_email:'hello@transitcore.ng' };
+
+// ============================================
+// ===== LOAD DYNAMIC CONTENT (graceful fallback if tables don't exist yet) =====
+// ============================================
+async function loadRoutes(){
+  try{
+    const { data, error } = await sb.from('routes').select('*').eq('active', true).order('destination', { ascending:true });
+    if(error) throw error;
+    if(data && data.length) return data;
+    return DEFAULT_ROUTES;
+  }catch(e){
+    console.warn('routes table not found yet — showing defaults. Run supabase_schema.sql to enable admin editing.', e.message);
+    return DEFAULT_ROUTES;
+  }
+}
+
+async function loadTestimonials(){
+  try{
+    const { data, error } = await sb.from('testimonials').select('*').eq('published', true).order('created_at', { ascending:false }).limit(6);
+    if(error) throw error;
+    if(data && data.length) return data;
+    return DEFAULT_TESTIMONIALS;
+  }catch(e){
+    console.warn('testimonials table not found yet — showing defaults.', e.message);
+    return DEFAULT_TESTIMONIALS;
+  }
+}
+
+async function loadSettings(){
+  try{
+    const { data, error } = await sb.from('site_settings').select('*');
+    if(error) throw error;
+    const map = {};
+    (data||[]).forEach(r=> map[r.key] = r.value);
+    return Object.keys(map).length ? map : DEFAULT_SETTINGS;
+  }catch(e){
+    console.warn('site_settings table not found yet — showing defaults.', e.message);
+    return DEFAULT_SETTINGS;
+  }
+}
+
+// ============================================
+// ===== RENDER ROUTES =====
+// ============================================
+function renderRoutes(routes){
+  const grid = document.getElementById('routesGrid');
+  grid.innerHTML = routes.map(r=>`
+    <div class="route-card">
+      <div class="rc-route">Landmark University → ${r.destination}</div>
+      <div class="rc-dest">${r.destination}</div>
+      <div class="rc-op">via ${r.operator || 'GIGM'}</div>
+      <div class="rc-foot">
+        <div class="rc-price">₦${Number(r.price).toLocaleString()}<span>Indicative fare</span></div>
+        <a href="#" class="rc-book" onclick="openBooking(event,'${r.destination.replace(/'/g,"\\'")}')">Book →</a>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============================================
+// ===== RENDER TESTIMONIALS =====
+// ============================================
+function renderTestimonials(list){
+  const grid = document.getElementById('testiGrid');
+  grid.innerHTML = list.map(t=>`
+    <div class="testi-card">
+      <div class="tc-quote">"${t.quote}"</div>
+      <div class="tc-person">
+        <div class="tc-avatar">${(t.name||'?').charAt(0)}</div>
+        <div>
+          <div class="tc-name">${t.name}</div>
+          <div class="tc-role">${t.role||''}</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============================================
+// ===== DEPARTURE BOARD =====
+// ============================================
+const BOARD_DATA = [
+  {dest:'LAGOS ISLAND', time:'06:00', status:'ON TIME', cls:'status-ontime'},
+  {dest:'ABUJA', time:'07:30', status:'BOARDING', cls:'status-board'},
+  {dest:'ILORIN AIRPT', time:'09:00', status:'ON TIME', cls:'status-ontime'},
+  {dest:'PORT HARCOURT', time:'11:15', status:'SCHEDULED', cls:'status-sched'},
+  {dest:'KADUNA', time:'13:00', status:'SCHEDULED', cls:'status-sched'},
+];
+function buildFlaps(text, id){
+  return text.split('').map((c,i)=>`<div class="flap" data-target="${c}"><span>${c}</span></div>`).join('');
+}
+function renderBoard(){
+  const rows = document.getElementById('boardRows');
+  rows.innerHTML = BOARD_DATA.map(r=>`
+    <div class="board-row">
+      <div class="flap-group">${buildFlaps(r.dest.padEnd(14,' '))}</div>
+      <div class="board-time">${r.time}</div>
+      <div class="board-status ${r.cls}">${r.status}</div>
+    </div>
+  `).join('');
+}
+function flickerBoard(){
+  const flaps = document.querySelectorAll('.flap');
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ ';
+  flaps.forEach(f=>{
+    if(Math.random() > 0.85){
+      const target = f.getAttribute('data-target');
+      const span = f.querySelector('span');
+      let n = 0;
+      const iv = setInterval(()=>{
+        span.textContent = chars[Math.floor(Math.random()*chars.length)];
+        n++;
+        if(n>3){ clearInterval(iv); span.textContent = target; }
+      },70);
+    }
+  });
+}
+
+// ============================================
+// ===== BOOKING MODAL =====
+// ============================================
+let currentRoutes = [];
+function openBooking(e, dest){
+  if(e) e.preventDefault();
+  document.getElementById('bookingModal').classList.add('open');
+  if(dest){
+    const sel = document.getElementById('mDest');
+    [...sel.options].forEach(o=>{ if(o.value === dest) sel.value = dest; });
+  }
+}
+function closeBooking(){
+  document.getElementById('bookingModal').classList.remove('open');
+}
+function populateDestSelect(routes){
+  const sel = document.getElementById('mDest');
+  sel.innerHTML = routes.map(r=>`<option value="${r.destination}">${r.destination}</option>`).join('');
+}
+function submitBooking(){
+  const dest = document.getElementById('mDest').value;
+  const date = document.getElementById('mDate').value;
+  const name = document.getElementById('mName').value.trim();
+  if(!name){ document.getElementById('mName').focus(); return; }
+  const text = encodeURIComponent(
+    `Hi TransitCore! I'd like to book a trip.\n\nName: ${name}\nRoute: Landmark University → ${dest}\nTravel date: ${date || 'flexible'}\n\nPlease confirm seat availability.`
+  );
+  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, '_blank');
+  closeBooking();
+}
+document.getElementById('bookingModal').addEventListener('click', e=>{
+  if(e.target.id === 'bookingModal') closeBooking();
+});
+
+// ============================================
+// ===== NAV TOGGLE =====
+// ============================================
+document.getElementById('navToggle').addEventListener('click', ()=>{
+  document.getElementById('navLinks').classList.toggle('open');
+});
+document.querySelectorAll('.nav-links a').forEach(a=>{
+  a.addEventListener('click', ()=> document.getElementById('navLinks').classList.remove('open'));
+});
+
+// ============================================
+// ===== SCROLL REVEAL =====
+// ============================================
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(en=>{ if(en.isIntersecting) en.target.classList.add('in'); });
+},{threshold:0.12});
+document.querySelectorAll('.fade-up').forEach(el=> io.observe(el));
+
+// ============================================
+// ===== INIT =====
+// ============================================
+document.getElementById('yr').textContent = new Date().getFullYear();
+document.getElementById('mDate').valueAsDate = new Date();
+renderBoard();
+setInterval(flickerBoard, 3200);
+
+(async function init(){
+  const [routes, testimonials, settings] = await Promise.all([loadRoutes(), loadTestimonials(), loadSettings()]);
+  currentRoutes = routes;
+  renderRoutes(routes);
+  populateDestSelect(routes);
+  renderTestimonials(testimonials);
+  if(settings.footer_phone) document.getElementById('footPhone').textContent = settings.footer_phone;
+  if(settings.footer_email) document.getElementById('footEmail').textContent = settings.footer_email;
+})();
+</script>
+</body>
+</html>
